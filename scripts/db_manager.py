@@ -9,16 +9,17 @@ from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader
 
 class DbManager :
     CONFIG = {
-        "apiKey": "AIzaSyClWABkoTyZ8XrIXaaJChZPvqTPCKdfhTA",
-        "authDomain": "classproject-53b90.firebaseapp.com",
-        "projectId": "classproject-53b90",
-        "storageBucket": "classproject-53b90.appspot.com",
-        "messagingSenderId": "117138485718",
-        "appId": "1:117138485718:web:6d9156971b8bf88b3ef477",
-        "measurementId": "G-2YHJSLJ8ED",
-        "databaseURL": "https://classproject-53b90-default-rtdb.asia-southeast1.firebasedatabase.app/",
-        "serviceAccount": "service_account.json",
+        "apiKey": os.environ.get("apiKey"),
+        "authDomain": os.environ.get("authDomain"),
+        "projectId": os.environ.get("projectId"),
+        "storageBucket": os.environ.get("storageBucket"),
+        "messagingSenderId": os.environ.get("messageSenderId"),
+        "appId": os.environ.get("appId"),
+        "measurementId": os.environ.get("measurementId"),
+        "serviceAccount": os.environ.get("serviceAccount"),
+        "databaseURL": os.environ.get("databaseURL")
     }
+    
     EMBEDDING_MODEL = "sentence-transformers/all-mpnet-base-v2"
     
     def __init__(self) :
@@ -38,6 +39,7 @@ class DbManager :
         self.old_docs = list()
     
     def create_vectorstore(self) :
+        print("Created")
         loader = PyPDFLoader("documents/file1.pdf")
         documents = loader.load_and_split()
         all_splits = self.text_splitter.split_documents(documents)
@@ -46,6 +48,7 @@ class DbManager :
         return FAISS.from_documents(all_splits, self.embeddings)
     
     def load_vectorstore(self) :
+        print("Loaded")
         return FAISS.load_local(self.vector_db_dir, self.embeddings, allow_dangerous_deserialization=True)
         
         

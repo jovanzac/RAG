@@ -34,10 +34,11 @@ def docs_upload() :
 @app.route("/user_query", methods=["POST"])
 def user_query() :
     if request.method == "POST" :
+        print("Received the post request")
         response = request.json
         query = response["query"]
         
-        response = llm.invoke_rag(query)
+        response = llm.route(query)
         
         return jsonify(
             {
