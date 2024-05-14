@@ -45,6 +45,12 @@ def user_query() :
                 "response": response
             }
         )
+        
+
+@app.route("/")
+def home() :
+    if request.method == "GET" :
+        return "<h2>Hello World!</h2>"
 
 
 
