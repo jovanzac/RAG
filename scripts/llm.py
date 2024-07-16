@@ -10,6 +10,7 @@ from langchain_core.prompts import PromptTemplate
 
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from twilio.rest import Client
 
 from scripts.db_manager import db_manager
 
@@ -30,19 +31,52 @@ class Llm :
         self.rag = self.rag_prompt_structure()
         self.chain = self.retrieval_chain()
         
+        self.phone_book = {
+            "Abel": "+919605730268",
+            "Savio": "+919526664904",
+            "Sarat": "+919633538760",
+            "Jovan": "+919961109777"
+        }
+        
         
     def class_prompt_structure(self) :
+        # classification_template = PromptTemplate.from_template(
+        #     """You're job is to classify queries. Given a user question below, classify it
+        #     as belonging to either "Get_Time", "Get_Stock_Price" or "Miscellaneous". 
+
+        #     <If the user query is about the current time in any country, then classify the question as "Get_Time".
+        #     The response should be of the format "Get_Time,IANA" where IANA is a valid time zone from
+        #     the IANA Time Zone Database like "America/New_York" or "Europe/London". If the country isn't mentioned
+        #     assume it to be India>
+        #     <If the user query is about the stock price of a share of any company in the market, then classify the question
+        #     as "Get_Stock_Price". The Respose should be of the format "Get_Stock_Price,Symbol" where Symbol
+        #     is the Ticker symbol of the concerned company.>
+        #     <If the user query is about any other subject or topic, classify the question as "Miscellaneous">
+
+        #     <question>
+        #     {question}
+        #     </question>
+
+        #     Classification:
+        #     """
+        #     )
         classification_template = PromptTemplate.from_template(
             """You're job is to classify queries. Given a user question below, classify it
-            as belonging to either "Get_Time", "Get_Stock_Price" or "Miscellaneous". 
+            as belonging to either "Get_Time", "Get_Stock_Price", "Send_Whatsapp_Message" or "Miscellaneous". 
 
             <If the user query is about the current time in any country, then classify the question as "Get_Time".
             The response should be of the format "Get_Time,IANA" where IANA is a valid time zone from
             the IANA Time Zone Database like "America/New_York" or "Europe/London". If the country isn't mentioned
             assume it to be India>
+            
             <If the user query is about the stock price of a share of any company in the market, then classify the question
             as "Get_Stock_Price". The Respose should be of the format "Get_Stock_Price,Symbol" where Symbol
             is the Ticker symbol of the concerned company.>
+            
+            <If the user query is about sending a whatsapp message to a particular user, then classify the question as "Send_Whatsapp_Message". 
+            The response should be in the format "Send_Whatsapp_Message,Name,Message" where Name is the name of the person mentioned and
+            Message is the message to be sent that is taken from the user's query word for word.>
+            
             <If the user query is about any other subject or topic, classify the question as "Miscellaneous">
 
             <question>
@@ -86,6 +120,19 @@ class Llm :
             }
         except (KeyError, TypeError, ValueError) :
                 return None
+            
+    
+    def send_whatsapp_mssg(self, mssg, to_number) :
+        client = Client(os.environ.get("TwilioAccountSid"), os.environ.get("TwilioAuthToken"))
+
+        from_whatsapp_number = "whatsapp:+14155238886"
+        to_whatsapp_number = f"whatsapp:{to_number}"
+
+        mssg = client.messages.create(
+            body=mssg,
+            from_=from_whatsapp_number,
+            to=to_whatsapp_number
+        )
 
 
     def rag_prompt_structure(self) :
@@ -113,6 +160,16 @@ class Llm :
         elif route_class[0] == "Get_Stock_Price" :
             response = self.get_stock_price(route_class[1].strip())
             return f"The price of {response['name']}'s stock is currently USD {response['price']}"
+        
+        elif route_class[0] == "Send_Whatsapp_Message" :
+            print("Here")
+            name = route_class[1].strip().capitalize()
+            number = self.phone_book[name]
+            print(f"number: {number}")
+            mssg = route_class[2].strip()
+            self.send_whatsapp_mssg(mssg, number)
+            
+            return f"Message {mssg} sent successfully to {name}"
 
         else :
             return self.invoke_rag(query)
